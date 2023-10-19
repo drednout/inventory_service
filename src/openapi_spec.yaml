@@ -1,0 +1,393 @@
+openapi: 3.0.0
+info:
+  title: Inventory Service API
+  version: 1.0.0
+components:
+    responses:
+        ok_response:
+            description: Success
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ok_message'
+        validation_error:
+            description: Bad request or validation error
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/error_message'
+        business_error:
+            description: Handled business or logical error
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/error_message'
+        internal_error:
+            description: Internal server error
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/error_message'
+    schemas:
+        ok_message:
+            type: object
+            required:
+                - status
+                - data
+            properties:
+                status:
+                    type: string
+                data:
+                    type: object
+            example:
+                status: OK
+                data: {}
+        error_message:
+            type: object
+            required:
+                - status
+                - error_code
+                - error_message
+                - context
+            properties:
+                status:
+                    type: string
+                error_code:
+                    type: string
+                error_message:
+                    type: string
+                context:
+                    type: object
+
+
+paths:
+  /v1/inventory/get:
+    post:
+      summary: Get Inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                player_id:
+                  type: integer
+      responses:
+        '200':
+          description: Successful response with the player's inventory.
+          content:
+            application/json:
+              schema:
+                type: object  # Define the schema for the response
+                properties:
+                  player_id:
+                    type: integer
+                  inventory:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        inventory_type:
+                          type: string
+                        item_code:
+                          type: string
+                        amount:
+                          type: integer
+        '400':
+            $ref: '#/components/responses/validation_error'
+        '420':
+            $ref: '#/components/responses/business_error'
+        '500':
+            $ref: '#/components/responses/internal_error'
+
+
+  /v1/inventory/grant:
+    post:
+      summary: Grant Item(s)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                player_id:
+                  type: integer
+                item_code:
+                  type: string
+                amount:
+                  type: integer
+      responses:
+        '200':
+            $ref: '#/components/responses/ok_response'
+        '400':
+            $ref: '#/components/responses/validation_error'
+        '420':
+            $ref: '#/components/responses/business_error'
+        '500':
+            $ref: '#/components/responses/internal_error'
+
+  /v1/inventory/consume:
+    post:
+      summary: Consume Item(s)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                player_id:
+                  type: integer
+                item_code:
+                  type: string
+                amount:
+                  type: integer
+      responses:
+        '200':
+            $ref: '#/components/responses/ok_response'
+        '400':
+            $ref: '#/components/responses/validation_error'
+        '420':
+            $ref: '#/components/responses/business_error'
+        '500':
+            $ref: '#/components/responses/internal_error'
+
+  /v1/inventory/update:
+    post:
+      summary: Update Inventory (Batch)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  operation:
+                    type: string
+                  player_id:
+                    type: integer
+                  item_code:
+                    type: string
+                  amount:
+                    type: integer
+      responses:
+        '200':
+            $ref: '#/components/responses/ok_response'
+        '400':
+            $ref: '#/components/responses/validation_error'
+        '420':
+            $ref: '#/components/responses/business_error'
+        '500':
+            $ref: '#/components/responses/internal_error'
+
+  /v1/inventory/catalog/get:
+    post:
+      summary: Get Game Inventory Catalog
+      responses:
+        '200':
+          description: Successful response with the game inventory catalog.
+          content:
+            application/json:
+              schema:
+                type: object  # Define the schema for the response
+                properties:
+                  item_code:
+                    type: string
+                  inventory_type:
+                    type: string
+                  item_rarity:
+                    type: string
+                  gd_description:
+                    type: string
+                  base_param_array:
+                    type: string
+                  base_param1_name:
+                    type: string
+                  base_param1_type:
+                    type: string
+                  base_param1_value:
+                    type: string
+                  base_param2_name:
+                    type: string
+                  base_param2_type:
+                    type: string
+                  base_param2_value:
+                    type: string
+                  base_param3_name:
+                    type: string
+                  base_param3_type:
+                    type: string
+                  base_param3_value:
+                    type: string
+                  base_param4_name:
+                    type: string
+                  base_param4_type:
+                    type: string
+                  base_param4_value:
+                    type: string
+                  base_param5_name:
+                    type: string
+                  base_param5_type:
+                    type: string
+                  base_param5_value:
+                    type: string
+                  ext_params:
+                    type: object
+                  i18n:
+                    type: object
+        '400':
+            $ref: '#/components/responses/validation_error'
+        '420':
+            $ref: '#/components/responses/business_error'
+        '500':
+            $ref: '#/components/responses/internal_error'
+
+  /v1/inventory/catalog/create:
+    post:
+      summary: Create Game Inventory Catalog Entry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item_code:
+                  type: string
+                inventory_type:
+                  type: string
+                item_rarity:
+                  type: string
+                gd_description:
+                  type: string
+                base_param_array:
+                  type: string
+                base_param1_name:
+                  type: string
+                base_param1_type:
+                  type: string
+                base_param1_value:
+                  type: string
+                base_param2_name:
+                  type: string
+                base_param2_type:
+                  type: string
+                base_param2_value:
+                  type: string
+                base_param3_name:
+                  type: string
+                base_param3_type:
+                  type: string
+                base_param3_value:
+                  type: string
+                base_param4_name:
+                  type: string
+                base_param4_type:
+                  type: string
+                base_param4_value:
+                  type: string
+                base_param5_name:
+                  type: string
+                base_param5_type:
+                  type: string
+                base_param5_value:
+                  type: string
+                ext_params:
+                  type: object
+                i18n:
+                  type: object
+      responses:
+        '200':
+            $ref: '#/components/responses/ok_response'
+        '400':
+            $ref: '#/components/responses/validation_error'
+        '420':
+            $ref: '#/components/responses/business_error'
+        '500':
+            $ref: '#/components/responses/internal_error'
+
+  /v1/inventory/catalog/update:
+    post:
+      summary: Update Game Inventory Catalog Entry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item_code:
+                  type: string
+                inventory_type:
+                  type: string
+                item_rarity:
+                  type: string
+                gd_description:
+                  type: string
+                base_param_array:
+                  type: string
+                base_param1_name:
+                  type: string
+                base_param1_type:
+                  type: string
+                base_param1_value:
+                  type: string
+                base_param2_name:
+                  type: string
+                base_param2_type:
+                  type: string
+                base_param2_value:
+                  type: string
+                base_param3_name:
+                  type: string
+                base_param3_type:
+                  type: string
+                base_param3_value:
+                  type: string
+                base_param4_name:
+                  type: string
+                base_param4_type:
+                  type: string
+                base_param4_value:
+                  type: string
+                base_param5_name:
+                  type: string
+                base_param5_type:
+                  type: string
+                base_param5_value:
+                  type: string
+                ext_params:
+                  type: object
+                i18n:
+                  type: object
+      responses:
+        '200':
+            $ref: '#/components/responses/ok_response'
+        '400':
+            $ref: '#/components/responses/validation_error'
+        '420':
+            $ref: '#/components/responses/business_error'
+        '500':
+            $ref: '#/components/responses/internal_error'
+
+  /v1/inventory/catalog/delete:
+    post:
+      summary: Delete Game Inventory Catalog Entry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item_code:
+                  type: string
+      responses:
+        '204':
+            $ref: '#/components/responses/ok_response'
+        '400':
+            $ref: '#/components/responses/validation_error'
+        '420':
+            $ref: '#/components/responses/business_error'
+        '500':
+            $ref: '#/components/responses/internal_error'
+
