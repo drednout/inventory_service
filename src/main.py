@@ -1,96 +1,17 @@
 import argparse
 import asyncio
 import pathlib
+import logging
+import json
 
-import aiopg
+import asyncpg
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings, ReDocUiSettings
 from aiohttp import web
 import yaml
 
-
-
-
-async def get_inventory(request):
-    try:
-        # Parse the JSON request body
-        data = await request.json()
-
-        # Validate and retrieve player_id from the request
-        player_id = data.get('player_id')
-        if player_id is None:
-            return web.json_response({
-                'status': 'error',
-                'error_code': '400',
-                'error_message': 'Missing player_id',
-                'context': {}
-            }, status=400)
-
-        # Connect to the PostgreSQL database
-        async with request.app.db_pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                # Perform a database query to get the player's inventory
-                await cur.execute("SELECT * FROM player_inventory WHERE player_id = %s", (player_id,))
-                inventory = await cur.fetchall()
-
-                # Format the inventory data as needed
-                inventory_data = [{'id': row[0], 'inventory_type': row[2], 'item_code': row[3], 'amount': row[4]} for row in inventory]
-
-        # Return the inventory data as JSON response
-        return web.json_response({
-            'status': 'OK',
-            'data': {'player_id': player_id, 'inventory': inventory_data}
-        })
-
-    except Exception as e:
-        return web.json_response({
-            'status': 'error',
-            'error_code': '500',
-            'error_message': str(e),
-            'context': {}
-        }, status=500)
-
-async def grant_item(request):
-    try:
-        # Parse the JSON request body
-        data = await request.json()
-
-        # Validate and retrieve player_id, item_code, and amount from the request
-        player_id = data.get('player_id')
-        item_code = data.get('item_code')
-        amount = data.get('amount')
-        if player_id is None or item_code is None or amount is None:
-            return web.json_response({
-                'status': 'error',
-                'error_code': '400',
-                'error_message': 'Missing player_id, item_code, or amount',
-                'context': {}
-            }, status=400)
-
-        # Connect to the PostgreSQL database
-        async with request.app.db_pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                # Perform an upsert operation to grant items to the player's inventory
-                await cur.execute("""
-                    INSERT INTO player_inventory (player_id, inventory_type, item_code, amount)
-                    VALUES (%s, 'consumable', %s, %s)
-                    ON CONFLICT (player_id, item_code)
-                    DO UPDATE SET amount = player_inventory.amount + %s;
-                """, (player_id, item_code, amount, amount))
-
-        # Return a success response
-        return web.json_response({
-            'status': 'OK',
-            'data': {}
-        })
-
-    except Exception as e:
-        return web.json_response({
-            'status': 'error',
-            'error_code': '500',
-            'error_message': str(e),
-            'context': {}
-        }, status=500)
-
+from monitoring import metrics_view, monitoring_middleware
+from error import error_middleware
+from view import get_inventory, grant_item
 
 
 def load_config(config_path):
@@ -109,6 +30,15 @@ def get_database_settings(config):
     return database_settings
 
 
+async def init_dbconn_callback(conn):
+    await conn.set_type_codec(
+        'jsonb',
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema='pg_catalog'
+    )
+
+
 async def main():
     parser = argparse.ArgumentParser(description='Inventory Service')
     parser.add_argument(
@@ -116,23 +46,48 @@ async def main():
         default='inventory.yaml', 
         help='Path to the YAML config file (default: inventory.yaml)'
     )
+    parser.add_argument(
+        '--log-level', '-l',
+        choices=('info', 'debug', 'warning', 'error', 'critical'),
+        default='info',
+        help='Specify log level, info by default'
+    )
+    parser.add_argument(
+        '--disable-request-validation',
+        default=False,
+        action='store_true',
+        help='Disable request validation using openapi schema(for perf testing).'
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
     db_settings = get_database_settings(config)
 
-    pool = await aiopg.create_pool(**db_settings)
+    log_format = '%(asctime)s; %(levelname)s; %(message)s'
+    logging.basicConfig(level=args.log_level.upper(), format=log_format)
 
-    app = web.Application()
+    pool = await asyncpg.create_pool(**db_settings, init=init_dbconn_callback)
+    middlewares = [
+        monitoring_middleware,
+        error_middleware,
+    ]
+
+    app = web.Application(middlewares=middlewares)
     app.db_pool = pool
     app.config = config
+    need_request_validation = True
+    if args.disable_request_validation:
+        need_request_validation = False
+
     swagger = SwaggerFile(
         app,
         redoc_ui_settings=ReDocUiSettings(path='/docs'),
         swagger_ui_settings=SwaggerUiSettings(path='/swagger'),
         spec_file=str(pathlib.Path(__file__).parent / 'openapi_spec.yaml'),
+        validate=need_request_validation
     )
     swagger.add_routes([
+         web.get('/metrics', metrics_view),
          web.post('/v1/inventory/get', get_inventory),
          web.post('/v1/inventory/grant', grant_item),
     ])

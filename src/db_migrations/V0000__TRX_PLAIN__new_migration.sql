@@ -48,11 +48,11 @@ CREATE TABLE log_player_event (
     player_id bigint NOT NULL,
     event_type game_event_type NOT NULL,
     event_value_type game_param_type NOT NULL DEFAULT 'int',
-    event_value_int bigint NOT NULL,
-    event_value_float float NOT NULL,
-    event_value_str varchar(20) NOT NULL,
+    event_value_int bigint,
+    event_value_float float,
+    event_value_str varchar(20),
     ext_trx_id varchar(40),
     meta_data JSONB,
     created timestamp without time zone DEFAULT timezone('UTC'::text, now()),
     updated timestamp without time zone DEFAULT timezone('UTC'::text, now())
-) PARTITION BY RANGE (EXTRACT(YEAR FROM event_time), EXTRACT(MONTH FROM event_time));
+) PARTITION BY RANGE (event_time);

@@ -72,6 +72,8 @@ paths:
               properties:
                 player_id:
                   type: integer
+              required:
+                - player_id
       responses:
         '200':
           description: Successful response with the player's inventory.
@@ -111,6 +113,11 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - player_id
+                - item_code
+                - amount
+                - ext_trx_id
               properties:
                 player_id:
                   type: integer
@@ -118,6 +125,17 @@ paths:
                   type: string
                 amount:
                   type: integer
+                ext_trx_id:
+                  description: Idempotency key
+                  type: string
+                inventory_type:
+                  # by default, consumable
+                  type: string
+                  enum:
+                    - consumable
+                    - weapon
+                    - jewelry
+                    - other
       responses:
         '200':
             $ref: '#/components/responses/ok_response'
