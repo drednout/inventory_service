@@ -11,7 +11,7 @@ import yaml
 
 from monitoring import metrics_view, monitoring_middleware
 from error import error_middleware
-from view import get_inventory, grant_item
+from view import get_inventory, grant_item, grant_item_stored_trx
 
 
 def load_config(config_path):
@@ -90,6 +90,7 @@ async def main():
          web.get('/metrics', metrics_view),
          web.post('/v1/inventory/get', get_inventory),
          web.post('/v1/inventory/grant', grant_item),
+        web.post('/internal/inventory/grant_stored_trx', grant_item_stored_trx),
     ])
 
     # Add other routes for the remaining API endpoints

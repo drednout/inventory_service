@@ -28,6 +28,58 @@ async def get_inventory(request):
     })
 
 
+
+
+async def grant_item_stored_trx(request):
+    try:
+        # Parse the JSON request body
+        data = await request.json()
+
+        # Validate and retrieve player_id, item_code, and amount from the request
+        player_id = data.get('player_id')
+        item_code = data.get('item_code')
+        amount = data.get('amount')
+        ext_trx_id = data.get('ext_trx_id')
+        inventory_type = data.get('inventory_type', 'consumable')
+        if player_id is None or item_code is None or amount is None:
+            return web.json_response({
+                'status': 'error',
+                'error_code': '400',
+                'error_message': 'Missing player_id, item_code or amount',
+                'context': {}
+            }, status=400)
+
+        is_duplicate = False
+        async with request.app.db_pool.acquire() as conn:
+            async with conn.transaction():
+                try:
+                    await conn.fetchrow("""
+                        SELECT insert_inventory($1, $2, $3, $4, $5);
+                    """, player_id, ext_trx_id, inventory_type, item_code, amount)
+                except asyncpg.exceptions.IntegrityConstraintViolationError:
+                    is_duplicate = True
+    
+        if is_duplicate:
+            logging.info('Duplicate request detected when trying to add_item player_id: %s, item_code: %s, '
+                            'inventory_type: %s, ext_trx_id: %s', player_id, item_code,
+                            inventory_type, ext_trx_id)
+
+        # Return a success response
+        return web.json_response({
+            'status': 'OK',
+            'data': {}
+        })
+
+    except Exception as e:
+        logging.exception(e)
+        return web.json_response({
+            'status': 'error',
+            'error_code': '500',
+            'error_message': str(e),
+            'context': {}
+        }, status=500)
+    
+
 async def grant_item(request):
     try:
         # Parse the JSON request body
