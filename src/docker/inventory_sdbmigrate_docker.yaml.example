@@ -1,7 +1,7 @@
 # information about database masters and their connection info
 databases:
     - name: "inventory_service"
-      host: "127.0.0.1"
+      host: "inventory-db"
       port: 5432
       type: postgres
       user: "inventory_service"

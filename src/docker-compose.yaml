@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  inventory-db:
+    container_name: inventory-db
+    image: 'postgres:16.1'
+    shm_size: 1g
+    privileged: true
+    environment:
+      - POSTGRES_DB=inventory_service
+      - POSTGRES_USER=inventory_service
+      - POSTGRES_PASSWORD=inventory_service
+      - POSTGRES_HOST=localhost
+      - POSTGRES_PORT=5432
+    ports:
+      - '5432:5432'
+    volumes:
+      - 'db_data:/var/lib/postgresql/data'
+  inventory-db-migration:
+    container_name: inventory-db-migration
+    image: sdbmigrate
+    entrypoint: []
+    command: ['./wait-for-it.sh', '${DATABASE_HOST}:${DATABASE_PORT}', '--timeout=${DATABASE_WAIT_TIMEOUT}', '--',
+              'bash', '/run_migrations.sh']
+              #'sdbmigrate.py', '-c', 'inventory_sdbmigrate.yaml', '-d', 'db_migrations']
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.sdbmigrate
+    depends_on:
+      - inventory-db
+
+  inventory-service:
+    container_name: inventory-service
+    image: inventory-service
+    entrypoint: []
+    command: ['./wait-for-it.sh', '${DATABASE_HOST}:${DATABASE_PORT}', '--timeout=${DATABASE_WAIT_TIMEOUT}', '--',
+              'bash', './docker/run_inventory.sh']
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.inventory
+    ports:
+      - '8080:8080'
+    depends_on:
+      - inventory-db
+      - inventory-db-migration
+
+volumes:
+  db_data:

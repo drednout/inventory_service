@@ -1,8 +1,8 @@
 database:
-  dbname: inventory_service
+  database: inventory_service
   user: inventory_service
   password: inventory_service
   host: localhost
-  port: 5432
-  minsize: 1
-  maxsize: 5
+  port: 5433
+  min_size: 1
+  max_size: 5
