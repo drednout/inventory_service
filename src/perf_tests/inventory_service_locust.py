@@ -20,6 +20,6 @@ class InventoryUser(HttpUser):
         item_code = random.choice(InventoryUser.inventory_items)
         item_amount = random.randint(1, 10)
         player_id = random.randint(MIN_USER_ID, MAX_USER_ID)
-        data = {"player_id": player_id, "item_code": item_code, "amount": item_amount}
+        data = {"player_id": player_id, "item_code": item_code, "amount": item_amount, "ext_trx_id": ext_trx_id}
         self.client.post("/v1/inventory/grant", json=data)
 
