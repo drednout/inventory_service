@@ -1,5 +1,5 @@
 # inventory_service
-A small service for demonstrating Python 3.12 features
+A small service for comparing performance of different Python versions and for performance meetup demo.
 
 # Local development in Docker
 
