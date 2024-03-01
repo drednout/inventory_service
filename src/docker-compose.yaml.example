@@ -22,7 +22,6 @@ services:
     entrypoint: []
     command: ['./wait-for-it.sh', 'inventory-db:5432', '--timeout=10', '--',
               'bash', '/run_migrations.sh']
-              #'sdbmigrate.py', '-c', 'inventory_sdbmigrate.yaml', '-d', 'db_migrations']
     build:
       context: .
       dockerfile: docker/Dockerfile.sdbmigrate
@@ -83,7 +82,7 @@ services:
       - '9100:9100'
     restart: unless-stopped
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana-oss:9.5.16
     container_name: grafana
     ports:
       - 3000:3000
@@ -93,6 +92,19 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=grafana
     volumes:
       - ./docker/grafana:/etc/grafana/provisioning/datasources
+      - grafana_data:/var/lib/grafana
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    restart: always
+    environment:
+      - DATA_SOURCE_URI=inventory-db:5432/postgres?sslmode=disable
+      - DATA_SOURCE_USER=inventory_service
+      - DATA_SOURCE_PASS=inventory_service
+    ports:
+      - "9187:9187"
+    depends_on:
+      - inventory-db
+
 
 #  jenkins:
 #    image: jenkins/jenkins:lts
@@ -110,3 +122,4 @@ services:
 volumes:
   db_data:
   prom_data:
+  grafana_data:

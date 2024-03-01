@@ -6,10 +6,6 @@ RUN apt-get update && apt-get install -y software-properties-common locales && \
 ENV LANG en_US.utf8
 ENV DEBIAN_FRONTEND noninteractive
 
-# Copy wait-for.sh script
-ADD wait-for-it.sh /wait-for-it.sh
-RUN chmod +x wait-for-it.sh
-COPY requirements.txt /requirements.txt
 RUN apt-get -o Acquire::AllowInsecureRepositories=true \
     -o Acquire::AllowDowngradeToInsecureRepositories=true update \
     && apt-get install -y \
@@ -23,7 +19,11 @@ RUN apt-get -o Acquire::AllowInsecureRepositories=true \
         postgresql-client-14 \
         postgresql-client-common
 
+# Copy wait-for.sh script
+ADD wait-for-it.sh /wait-for-it.sh
+RUN chmod +x wait-for-it.sh
+COPY requirements.txt /requirements.txt
+RUN pip3 install -r /requirements.txt
 WORKDIR /inventory_service/
 COPY . /inventory_service/
 COPY ./docker/inventory_docker.yaml.example /inventory_service/inventory_docker.yaml
-RUN pip3 install -r /inventory_service/requirements.txt
